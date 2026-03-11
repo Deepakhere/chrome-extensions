@@ -5,6 +5,56 @@ import { highlightElement, removeHighlight } from "./highlighter";
 
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+/** Wait for DOM to settle after an action (e.g. SPA navigation, dynamic content) */
+async function waitForDomSettle(timeout = 500): Promise<void> {
+  return new Promise((resolve) => {
+    let timer: ReturnType<typeof setTimeout>;
+    let observer: MutationObserver | null = null;
+
+    const done = () => {
+      if (observer) observer.disconnect();
+      clearTimeout(timer);
+      resolve();
+    };
+
+    // Resolve immediately if no mutations happen within timeout
+    timer = setTimeout(done, timeout);
+
+    try {
+      observer = new MutationObserver(() => {
+        // DOM is still changing - reset timer
+        clearTimeout(timer);
+        timer = setTimeout(done, 200);
+      });
+
+      observer.observe(document.body, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+      });
+    } catch {
+      // If MutationObserver fails, just wait the timeout
+      clearTimeout(timer);
+      setTimeout(resolve, timeout);
+    }
+  });
+}
+
+/** Retry element resolution with small delays (for SPAs that re-render) */
+async function resolveElementWithRetry(
+  elementId: string,
+  snapshot: DOMSnapshot,
+  retries = 3,
+  delayMs = 300
+): Promise<HTMLElement | null> {
+  for (let attempt = 0; attempt < retries; attempt++) {
+    const el = resolveElement(elementId, snapshot);
+    if (el) return el;
+    if (attempt < retries - 1) await delay(delayMs);
+  }
+  return null;
+}
+
 export async function runActionPlan(
   plan: ActionPlan,
   snapshot: DOMSnapshot,
@@ -22,34 +72,44 @@ export async function runActionPlan(
         continue;
       }
 
-      const el = resolveElement(step.elementId, snapshot);
+      // Resolve element with retry for dynamic pages
+      const el = await resolveElementWithRetry(step.elementId, snapshot);
       if (!el) {
         throw new Error(
           `Could not find element "${step.elementId}" on the page. It may have been removed or changed.`
         );
       }
 
-      // Scroll element into view
-      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      // Ensure element is in viewport
+      try {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+      } catch {
+        // Some elements may not support scrollIntoView
+        try { el.scrollIntoView(true); } catch { /* ignore */ }
+      }
       await delay(300);
 
       // Highlight the element
-      highlightElement(el, `Step ${step.step}: ${step.description}`);
-      await delay(500);
+      try {
+        highlightElement(el, `Step ${step.step}: ${step.description}`);
+      } catch { /* highlighting is non-critical */ }
+      await delay(400);
 
       // Execute the action
       await executeAction(step.action, el, step.value);
-      await delay(400);
 
-      removeHighlight();
+      // Wait for DOM to settle after action (handles SPA re-renders, animations)
+      await waitForDomSettle(500);
+
+      try { removeHighlight(); } catch { /* non-critical */ }
       onStepUpdate(i, "done");
 
-      // Wait for page to settle after action
-      await delay(300);
+      // Small pause between steps for visual feedback
+      await delay(200);
     } catch (err) {
-      removeHighlight();
+      try { removeHighlight(); } catch { /* non-critical */ }
       onStepUpdate(i, "error", (err as Error).message);
-      // Don't break - mark remaining as skipped
+      // Mark remaining steps as skipped
       for (let j = i + 1; j < plan.steps.length; j++) {
         onStepUpdate(j, "skipped");
       }

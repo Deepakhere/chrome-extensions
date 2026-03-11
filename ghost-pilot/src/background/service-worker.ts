@@ -24,7 +24,7 @@ async function callGemini(
   userPrompt: string,
   apiKey: string
 ): Promise<string> {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
 
   const response = await fetch(url, {
     method: "POST",
@@ -50,8 +50,17 @@ async function callGemini(
   });
 
   if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Gemini API error (${response.status}): ${error}`);
+    const errorText = await response.text();
+    if (response.status === 429) {
+      throw new Error(
+        "Rate limit exceeded. Your Gemini free-tier quota is exhausted. " +
+        "Either wait for the quota to reset, or enable billing at https://aistudio.google.com to get higher limits."
+      );
+    }
+    if (response.status === 401 || response.status === 403) {
+      throw new Error("Invalid API key. Please check your Gemini API key and try again.");
+    }
+    throw new Error(`Gemini API error (${response.status}): ${errorText}`);
   }
 
   const data = await response.json();

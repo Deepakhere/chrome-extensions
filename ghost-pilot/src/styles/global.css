@@ -2,28 +2,16 @@
 
 /* ── GhostPilot Modal Styles ── */
 
-.gp-backdrop {
+.gp-wrapper {
   position: fixed;
   inset: 0;
   z-index: 2147483647;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  padding-bottom: 24px;
-  background: rgba(0, 0, 0, 0.3);
-  backdrop-filter: blur(2px);
-  font-family: "Inter", system-ui, -apple-system, sans-serif;
-  animation: gp-fadeIn 0.2s ease-out;
-}
-
-@keyframes gp-fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  pointer-events: none;
 }
 
 @keyframes gp-slideUp {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; transform: translateY(20px) translateX(-50%); }
+  to { opacity: 1; transform: translateY(0) translateX(-50%); }
 }
 
 @keyframes gp-spin {
@@ -35,13 +23,20 @@
   50% { opacity: 0.6; }
 }
 
+@keyframes gp-dotPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(96, 165, 250, 0.5); }
+  50% { box-shadow: 0 0 0 5px rgba(96, 165, 250, 0); }
+}
+
 .gp-modal {
-  width: 520px;
+  width: 480px;
   max-height: 70vh;
-  background: #0f0f14;
+  background: rgba(15, 15, 20, 0.95);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
   border: 1px solid rgba(168, 85, 247, 0.3);
   border-radius: 16px;
-  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.5), 0 0 40px rgba(168, 85, 247, 0.15);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 40px rgba(168, 85, 247, 0.1);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -49,6 +44,13 @@
   color: #e4e4eb;
   font-size: 14px;
   line-height: 1.5;
+  pointer-events: auto;
+  cursor: grab;
+  user-select: none;
+}
+
+.gp-modal:active {
+  cursor: grabbing;
 }
 
 /* ── Header ── */
@@ -56,7 +58,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 18px;
+  padding: 12px 16px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   background: rgba(168, 85, 247, 0.05);
 }
@@ -92,9 +94,10 @@
 
 /* ── Body ── */
 .gp-body {
-  padding: 16px 18px;
+  padding: 14px 16px;
   overflow-y: auto;
   flex: 1;
+  cursor: default;
 }
 
 /* ── Prompt Input ── */
@@ -117,6 +120,8 @@
   outline: none;
   transition: border-color 0.2s;
   box-sizing: border-box;
+  cursor: text;
+  user-select: text;
 }
 
 .gp-prompt-input textarea:focus {
@@ -160,10 +165,11 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 12px 16px;
+  padding: 10px 14px;
   border-radius: 10px;
   font-weight: 500;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
+  font-size: 13px;
 }
 
 .gp-phase-extracting,
@@ -183,8 +189,8 @@
 }
 
 .gp-spinner {
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: 14px;
   border: 2px solid rgba(168, 85, 247, 0.3);
   border-top-color: #a855f7;
   border-radius: 50%;
@@ -192,109 +198,111 @@
   flex-shrink: 0;
 }
 
-/* ── Timeline ── */
+/* ── Action Feed (dot timeline) ── */
 .gp-timeline {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-}
-
-.gp-reasoning {
-  padding: 10px 14px;
-  background: rgba(255, 255, 255, 0.03);
-  border-radius: 8px;
-  font-size: 13px;
-  color: #999;
-  border-left: 3px solid rgba(168, 85, 247, 0.3);
+  gap: 6px;
 }
 
 .gp-warnings {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  margin-bottom: 6px;
 }
 
 .gp-warning {
-  padding: 8px 12px;
+  padding: 6px 10px;
   background: rgba(234, 179, 8, 0.08);
   border-radius: 8px;
   color: #facc15;
-  font-size: 13px;
+  font-size: 12px;
 }
 
-.gp-steps {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.gp-step {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  padding: 8px 12px;
-  border-radius: 8px;
-  transition: background 0.2s;
-}
-
-.gp-step-running {
-  background: rgba(59, 130, 246, 0.08);
-  animation: gp-pulse 1.5s ease-in-out infinite;
-}
-
-.gp-step-done {
-  background: rgba(34, 197, 94, 0.05);
-}
-
-.gp-step-error {
-  background: rgba(239, 68, 68, 0.08);
-}
-
-.gp-step-skipped {
-  opacity: 0.4;
-}
-
-.gp-step-icon {
-  flex-shrink: 0;
-  width: 20px;
-  height: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 14px;
-  margin-top: 1px;
-}
-
-.gp-pending { color: #555; }
-.gp-running { color: #60a5fa; animation: gp-spin 1.5s linear infinite; }
-.gp-done { color: #4ade80; }
-.gp-error { color: #ef4444; }
-.gp-skipped { color: #555; }
-
-.gp-step-content {
+.gp-action-feed {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  min-width: 0;
 }
 
-.gp-step-num {
+.gp-action {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  transition: background 0.2s;
+  flex-wrap: wrap;
+}
+
+.gp-action-running {
+  background: rgba(59, 130, 246, 0.06);
+}
+
+.gp-action-done {
+  background: transparent;
+}
+
+.gp-action-error {
   font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  color: #666;
-  letter-spacing: 0.5px;
+  color: #ef4444;
+  width: 100%;
+  padding-left: 20px;
+  margin-top: 2px;
 }
 
-.gp-step-desc {
+.gp-action-skipped {
+  opacity: 0.35;
+}
+
+/* ── Dot indicator ── */
+.gp-dot {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-top: 6px;
+  transition: all 0.2s;
+}
+
+.gp-dot-pending {
+  background: #444;
+}
+
+.gp-dot-running {
+  background: #60a5fa;
+  animation: gp-dotPulse 1.2s ease-in-out infinite;
+}
+
+.gp-dot-done {
+  background: #4ade80;
+}
+
+.gp-dot-error {
+  background: #ef4444;
+}
+
+.gp-dot-skipped {
+  background: #444;
+}
+
+.gp-action-text {
   font-size: 13px;
   color: #ccc;
+  line-height: 1.5;
 }
 
-.gp-step-error-text {
-  font-size: 12px;
-  color: #ef4444;
-  margin-top: 2px;
+.gp-action-running .gp-action-text {
+  color: #93bbfc;
+}
+
+.gp-action-done .gp-action-text {
+  color: #999;
+}
+
+.gp-action-error .gp-action-text {
+  color: #fca5a5;
 }
 
 /* ── API Key Input ── */
@@ -321,6 +329,8 @@
   font-family: monospace;
   outline: none;
   box-sizing: border-box;
+  cursor: text;
+  user-select: text;
 }
 
 .gp-api-key-input input:focus {
@@ -361,7 +371,7 @@
 }
 
 .gp-error-msg {
-  padding: 12px 14px;
+  padding: 10px 14px;
   background: rgba(239, 68, 68, 0.1);
   border: 1px solid rgba(239, 68, 68, 0.2);
   border-radius: 10px;
@@ -393,7 +403,7 @@
 .gp-footer {
   display: flex;
   justify-content: space-between;
-  padding: 10px 18px;
+  padding: 8px 16px;
   border-top: 1px solid rgba(255, 255, 255, 0.06);
   font-size: 11px;
   color: #555;

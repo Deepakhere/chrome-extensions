@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "GhostPilot - AI Web Agent",
   "version": "1.0.0",
-  "description": "AI-powered browser automation agent. Press ALT+G to control any web app with natural language.",
+  "description": "AI-powered browser automation agent. Press ALT+P to control any web app with natural language.",
   "permissions": ["activeTab", "storage"],
   "host_permissions": ["https://generativelanguage.googleapis.com/*"],
   "background": {

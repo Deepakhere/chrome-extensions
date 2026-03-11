@@ -10,8 +10,8 @@ export default function App() {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // ALT + G
-      if (e.altKey && (e.key === "g" || e.key === "G")) {
+      // ALT + P
+      if (e.altKey && (e.key === "p" || e.key === "P")) {
         e.preventDefault();
         e.stopPropagation();
         toggle();

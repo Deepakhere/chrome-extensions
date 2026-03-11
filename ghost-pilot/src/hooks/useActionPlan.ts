@@ -22,6 +22,9 @@ export function useActionPlan() {
       if (!res?.key) {
         setPhase("api-key-needed");
       }
+    }).catch(() => {
+      setError("Extension was reloaded. Please refresh this page (F5).");
+      setPhase("error");
     });
   }, []);
 

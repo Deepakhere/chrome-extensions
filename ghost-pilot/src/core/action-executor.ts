@@ -12,12 +12,36 @@ function firePointerAndMouse(
   eventType: string,
   opts: MouseEventInit
 ) {
-  el.dispatchEvent(
-    new PointerEvent(`pointer${eventType}`, { ...opts, bubbles: true, cancelable: true })
-  );
-  el.dispatchEvent(
-    new MouseEvent(`mouse${eventType}`, { ...opts, bubbles: true, cancelable: true })
-  );
+  try {
+    el.dispatchEvent(
+      new PointerEvent(`pointer${eventType}`, { ...opts, bubbles: true, cancelable: true })
+    );
+  } catch { /* some elements don't support pointer events */ }
+  try {
+    el.dispatchEvent(
+      new MouseEvent(`mouse${eventType}`, { ...opts, bubbles: true, cancelable: true })
+    );
+  } catch { /* fallback silently */ }
+}
+
+function fireKeyboardEvents(el: HTMLElement, char: string): void {
+  try {
+    el.dispatchEvent(new KeyboardEvent("keydown", { key: char, bubbles: true, cancelable: true }));
+    el.dispatchEvent(new KeyboardEvent("keypress", { key: char, bubbles: true, cancelable: true }));
+    el.dispatchEvent(new KeyboardEvent("keyup", { key: char, bubbles: true, cancelable: true }));
+  } catch { /* ignore keyboard event errors */ }
+}
+
+function safeFocus(el: HTMLElement): void {
+  try {
+    el.focus();
+  } catch {
+    // Some elements (e.g. SVG) may not support focus
+    try {
+      el.dispatchEvent(new FocusEvent("focus", { bubbles: true }));
+      el.dispatchEvent(new FocusEvent("focusin", { bubbles: true }));
+    } catch { /* ignore */ }
+  }
 }
 
 function simulateClick(el: HTMLElement): void {
@@ -32,19 +56,23 @@ function simulateClick(el: HTMLElement): void {
   firePointerAndMouse(el, "over", opts);
   firePointerAndMouse(el, "enter", opts);
   firePointerAndMouse(el, "down", opts);
-  el.focus();
+  safeFocus(el);
   firePointerAndMouse(el, "up", opts);
   el.dispatchEvent(
     new MouseEvent("click", { ...opts, bubbles: true, cancelable: true })
   );
+
+  // Some elements need a direct .click() call (e.g. links, buttons in shadow DOM)
+  if (typeof el.click === "function") {
+    try { el.click(); } catch { /* ignore */ }
+  }
 }
 
-function simulateType(el: HTMLElement, value: string): void {
-  el.focus();
-
+/** Type into a standard input or textarea */
+function simulateTypeInput(el: HTMLElement, value: string): void {
   const inputEl = el as HTMLInputElement | HTMLTextAreaElement;
 
-  // Clear existing value
+  // Get native setter to bypass React/Vue controlled component interception
   const nativeInputSetter = Object.getOwnPropertyDescriptor(
     window.HTMLInputElement.prototype,
     "value"
@@ -57,37 +85,138 @@ function simulateType(el: HTMLElement, value: string): void {
   const setter =
     el instanceof HTMLTextAreaElement ? nativeTextareaSetter : nativeInputSetter;
 
-  if (setter) {
-    setter.call(inputEl, "");
-    inputEl.dispatchEvent(new Event("input", { bubbles: true }));
-
-    // Set new value
-    setter.call(inputEl, value);
-  } else {
+  try {
+    if (setter) {
+      // Clear
+      setter.call(inputEl, "");
+      inputEl.dispatchEvent(new Event("input", { bubbles: true }));
+      // Set new value
+      setter.call(inputEl, value);
+    } else {
+      inputEl.value = value;
+    }
+  } catch {
+    // Fallback if native setter fails
     inputEl.value = value;
   }
 
-  // Fire events React/Vue/Angular expect
+  // Fire events that React/Vue/Angular expect
   inputEl.dispatchEvent(new Event("input", { bubbles: true }));
   inputEl.dispatchEvent(new Event("change", { bubbles: true }));
 
-  // Also fire keyboard events for frameworks that listen to them
+  // Also dispatch InputEvent for modern frameworks
+  try {
+    inputEl.dispatchEvent(
+      new InputEvent("input", {
+        bubbles: true,
+        cancelable: true,
+        inputType: "insertText",
+        data: value,
+      })
+    );
+  } catch { /* older browsers may not support InputEvent */ }
+
+  // Fire keyboard events per character
   for (const char of value) {
-    inputEl.dispatchEvent(
-      new KeyboardEvent("keydown", { key: char, bubbles: true })
-    );
-    inputEl.dispatchEvent(
-      new KeyboardEvent("keypress", { key: char, bubbles: true })
-    );
-    inputEl.dispatchEvent(
-      new KeyboardEvent("keyup", { key: char, bubbles: true })
-    );
+    fireKeyboardEvents(inputEl, char);
   }
+}
+
+/** Type into a contenteditable rich text editor */
+function simulateTypeContentEditable(el: HTMLElement, value: string): void {
+  // Click first to ensure the editor is active and focused
+  simulateClick(el);
+
+  // Select all existing content
+  const selection = window.getSelection();
+  if (selection) {
+    try {
+      const range = document.createRange();
+      range.selectNodeContents(el);
+      selection.removeAllRanges();
+      selection.addRange(range);
+    } catch { /* ignore selection errors */ }
+  }
+
+  // Delete existing content if present
+  if (el.textContent) {
+    try { document.execCommand("delete", false); } catch { /* ignore */ }
+  }
+
+  // Method 1: execCommand insertText (works with most editors like TinyMCE, CKEditor, Quill)
+  let inserted = false;
+  try {
+    inserted = document.execCommand("insertText", false, value);
+  } catch { /* execCommand may throw in some contexts */ }
+
+  if (!inserted) {
+    // Method 2: Use InputEvent with insertText inputType
+    try {
+      // Place cursor at end
+      if (selection) {
+        const range = document.createRange();
+        range.selectNodeContents(el);
+        range.collapse(false);
+        selection.removeAllRanges();
+        selection.addRange(range);
+      }
+
+      // Create a text node and insert it
+      el.textContent = "";
+      const textNode = document.createTextNode(value);
+      el.appendChild(textNode);
+
+      // Fire InputEvent
+      el.dispatchEvent(
+        new InputEvent("input", {
+          bubbles: true,
+          cancelable: true,
+          inputType: "insertText",
+          data: value,
+        })
+      );
+
+      // Move cursor to end
+      if (selection) {
+        const range = document.createRange();
+        range.selectNodeContents(el);
+        range.collapse(false);
+        selection.removeAllRanges();
+        selection.addRange(range);
+      }
+    } catch {
+      // Method 3: Last resort - set innerHTML directly
+      el.textContent = value;
+    }
+  }
+
+  // Fire change-like events that editors may listen for
+  try { el.dispatchEvent(new Event("input", { bubbles: true })); } catch { /* ignore */ }
+  try { el.dispatchEvent(new Event("change", { bubbles: true })); } catch { /* ignore */ }
+
+  // Fire keyboard events per character for editors that rely on them
+  for (const char of value) {
+    fireKeyboardEvents(el, char);
+  }
+}
+
+/** Main type handler - routes to correct strategy */
+function simulateType(el: HTMLElement, value: string): void {
+  safeFocus(el);
+
+  // Check if this is a contenteditable element (rich text editor)
+  if (el.isContentEditable && !(el instanceof HTMLInputElement) && !(el instanceof HTMLTextAreaElement)) {
+    simulateTypeContentEditable(el, value);
+    return;
+  }
+
+  // Standard input/textarea
+  simulateTypeInput(el, value);
 }
 
 function simulateSelect(el: HTMLElement, value: string): void {
   const selectEl = el as HTMLSelectElement;
-  el.focus();
+  safeFocus(el);
 
   // Find the matching option
   const options = Array.from(selectEl.options);
@@ -96,16 +225,22 @@ function simulateSelect(el: HTMLElement, value: string): void {
     options.find((o) => o.text.toLowerCase().includes(value.toLowerCase()));
 
   if (match) {
-    const nativeSetter = Object.getOwnPropertyDescriptor(
-      window.HTMLSelectElement.prototype,
-      "value"
-    )?.set;
+    try {
+      const nativeSetter = Object.getOwnPropertyDescriptor(
+        window.HTMLSelectElement.prototype,
+        "value"
+      )?.set;
 
-    if (nativeSetter) {
-      nativeSetter.call(selectEl, match.value);
-    } else {
+      if (nativeSetter) {
+        nativeSetter.call(selectEl, match.value);
+      } else {
+        selectEl.value = match.value;
+      }
+    } catch {
       selectEl.value = match.value;
     }
+  } else {
+    throw new Error(`Could not find option matching "${value}"`);
   }
 
   selectEl.dispatchEvent(new Event("change", { bubbles: true }));
@@ -116,11 +251,28 @@ function simulateCheck(el: HTMLElement, checked: boolean): void {
   const inputEl = el as HTMLInputElement;
   if (inputEl.checked !== checked) {
     simulateClick(el);
-    // Force if click didn't work
+    // Force if click didn't toggle the checkbox
     if (inputEl.checked !== checked) {
-      inputEl.checked = checked;
+      const nativeSetter = Object.getOwnPropertyDescriptor(
+        window.HTMLInputElement.prototype,
+        "checked"
+      )?.set;
+
+      try {
+        if (nativeSetter) {
+          nativeSetter.call(inputEl, checked);
+        } else {
+          inputEl.checked = checked;
+        }
+      } catch {
+        inputEl.checked = checked;
+      }
+
       inputEl.dispatchEvent(new Event("change", { bubbles: true }));
       inputEl.dispatchEvent(new Event("input", { bubbles: true }));
+      try {
+        inputEl.dispatchEvent(new Event("click", { bubbles: true }));
+      } catch { /* ignore */ }
     }
   }
 }
@@ -134,11 +286,47 @@ function simulateHover(el: HTMLElement): void {
 }
 
 function simulateKeyPress(el: HTMLElement, key: string): void {
-  el.focus();
+  safeFocus(el);
   const opts: KeyboardEventInit = { key, bubbles: true, cancelable: true };
+
+  // Handle special keys
+  if (key === "Enter") {
+    opts.keyCode = 13;
+    opts.code = "Enter";
+  } else if (key === "Escape") {
+    opts.keyCode = 27;
+    opts.code = "Escape";
+  } else if (key === "Tab") {
+    opts.keyCode = 9;
+    opts.code = "Tab";
+  } else if (key === "Backspace") {
+    opts.keyCode = 8;
+    opts.code = "Backspace";
+  } else if (key === "ArrowDown") {
+    opts.keyCode = 40;
+    opts.code = "ArrowDown";
+  } else if (key === "ArrowUp") {
+    opts.keyCode = 38;
+    opts.code = "ArrowUp";
+  } else if (key === "ArrowLeft") {
+    opts.keyCode = 37;
+    opts.code = "ArrowLeft";
+  } else if (key === "ArrowRight") {
+    opts.keyCode = 39;
+    opts.code = "ArrowRight";
+  }
+
   el.dispatchEvent(new KeyboardEvent("keydown", opts));
   el.dispatchEvent(new KeyboardEvent("keypress", opts));
   el.dispatchEvent(new KeyboardEvent("keyup", opts));
+
+  // For Enter key, also submit if inside a form
+  if (key === "Enter" && el.closest("form")) {
+    const form = el.closest("form");
+    if (form) {
+      try { form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true })); } catch { /* ignore */ }
+    }
+  }
 }
 
 export async function executeAction(
@@ -152,7 +340,7 @@ export async function executeAction(
       break;
 
     case "type":
-      if (!value) throw new Error("Type action requires a value");
+      if (value === undefined || value === null) throw new Error("Type action requires a value");
       simulateType(el, value);
       break;
 

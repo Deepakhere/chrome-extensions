@@ -27,4 +27,4 @@ ReactDOM.createRoot(mountPoint).render(
   </React.StrictMode>
 );
 
-console.log("GhostPilot loaded. Press ALT+G to activate.");
+console.log("GhostPilot loaded. Press ALT+P to activate.");

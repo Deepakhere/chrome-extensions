@@ -6,32 +6,68 @@ interface Props {
   warnings?: string[];
 }
 
-function StatusIcon({ status }: { status: StepState["status"] }) {
-  switch (status) {
-    case "pending":
-      return <span className="gp-step-icon gp-pending">&#9675;</span>;
-    case "running":
-      return <span className="gp-step-icon gp-running">&#9881;</span>;
-    case "done":
-      return <span className="gp-step-icon gp-done">&#10003;</span>;
-    case "error":
-      return <span className="gp-step-icon gp-error">&#10007;</span>;
-    case "skipped":
-      return <span className="gp-step-icon gp-skipped">&#8212;</span>;
+function getActionLabel(step: StepState): string {
+  const { action, description, value, elementId } = step.step;
+  const desc = description || "";
+
+  switch (action) {
+    case "click":
+      return `Clicked ${desc}`;
+    case "type":
+      return `Typing "${value || ""}" — ${desc}`;
+    case "select":
+      return `Selected "${value || ""}" — ${desc}`;
+    case "check":
+      return `Checked ${desc}`;
+    case "uncheck":
+      return `Unchecked ${desc}`;
+    case "clear":
+      return `Cleared ${desc}`;
+    case "hover":
+      return `Hovered ${desc}`;
+    case "scroll-to":
+      return `Scrolled to ${desc}`;
+    case "wait":
+      return `Waiting ${value || "1000"}ms`;
+    case "press-key":
+      return `Pressed "${value}" key`;
     default:
-      return null;
+      return desc;
+  }
+}
+
+function getRunningLabel(step: StepState): string {
+  const { action, description, value } = step.step;
+
+  switch (action) {
+    case "click":
+      return `Clicking ${description}...`;
+    case "type":
+      return `Typing "${value || ""}"...`;
+    case "select":
+      return `Selecting "${value || ""}"...`;
+    case "check":
+      return `Checking ${description}...`;
+    case "uncheck":
+      return `Unchecking ${description}...`;
+    case "clear":
+      return `Clearing ${description}...`;
+    case "hover":
+      return `Hovering ${description}...`;
+    case "scroll-to":
+      return `Scrolling to ${description}...`;
+    case "wait":
+      return `Waiting...`;
+    case "press-key":
+      return `Pressing "${value}" key...`;
+    default:
+      return description;
   }
 }
 
 export function ActionTimeline({ steps, reasoning, warnings }: Props) {
   return (
     <div className="gp-timeline">
-      {reasoning && (
-        <div className="gp-reasoning">
-          <strong>Plan:</strong> {reasoning}
-        </div>
-      )}
-
       {warnings && warnings.length > 0 && (
         <div className="gp-warnings">
           {warnings.map((w, i) => (
@@ -40,18 +76,26 @@ export function ActionTimeline({ steps, reasoning, warnings }: Props) {
         </div>
       )}
 
-      <div className="gp-steps">
+      <div className="gp-action-feed">
         {steps.map((s, i) => (
           <div
             key={i}
-            className={`gp-step gp-step-${s.status}`}
+            className={`gp-action gp-action-${s.status}`}
           >
-            <StatusIcon status={s.status} />
-            <div className="gp-step-content">
-              <span className="gp-step-num">Step {s.step.step}</span>
-              <span className="gp-step-desc">{s.step.description}</span>
-              {s.error && <span className="gp-step-error-text">{s.error}</span>}
-            </div>
+            <span className={`gp-dot gp-dot-${s.status}`} />
+            <span className="gp-action-text">
+              {s.status === "running"
+                ? getRunningLabel(s)
+                : s.status === "done"
+                ? getActionLabel(s)
+                : s.status === "error"
+                ? getActionLabel(s)
+                : s.status === "skipped"
+                ? s.step.description
+                : s.step.description
+              }
+            </span>
+            {s.error && <span className="gp-action-error">{s.error}</span>}
           </div>
         ))}
       </div>
