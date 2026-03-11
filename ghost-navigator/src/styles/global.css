@@ -1,0 +1,53 @@
+@import "tailwindcss";
+
+/* Shadow DOM host reset */
+:host {
+  all: initial;
+  font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+}
+
+/* Bar wrapper — needs custom CSS for backdrop-filter + compound shadow */
+.ghost-bar-wrapper {
+  width: 580px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.06);
+}
+
+/* Ghost icon gradient */
+.ghost-icon {
+  background: linear-gradient(135deg, #7c3aed, #a855f7);
+}
+
+/* Hover states via CSS */
+.ghost-cmd-item:hover {
+  background: #f3e8ff;
+}
+
+.ghost-result-item:hover {
+  background: #f8fafc;
+}
+
+.ghost-result-item.selected {
+  background: #f5f3ff;
+}
+
+.ghost-result-item.selected:hover {
+  background: #f5f3ff;
+}
+
+/* Search input wrapper — force border visibility in Shadow DOM */
+.ghost-search-input-wrap {
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 1rem !important;
+  padding: 0 1rem !important;
+  height: 2.25rem !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+.ghost-search-input-wrap:focus-within {
+  border-color: #a855f7 !important;
+  box-shadow: 0 0 0 2px rgba(168, 85, 247, 0.15) !important;
+}
