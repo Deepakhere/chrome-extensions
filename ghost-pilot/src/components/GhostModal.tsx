@@ -92,17 +92,9 @@ export function GhostModal({
         {/* Header */}
         <div className="gp-header">
           <div className="gp-logo">
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <path d="M12 2a7 7 0 0 0-7 7c0 3 1.5 5.5 3 7.5S12 22 12 22s2.5-3.5 4-5.5S19 12 19 9a7 7 0 0 0-7-7z" />
-              <circle cx="12" cy="9" r="2.5" />
-            </svg>
+            <span className="w-8 h-8 rounded-lg flex items-center justify-center text-lg bg-indigo-500/10 shrink-0 select-none">
+              👻
+            </span>
             <span>GhostPilot</span>
           </div>
           <button
