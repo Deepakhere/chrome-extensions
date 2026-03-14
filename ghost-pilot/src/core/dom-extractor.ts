@@ -15,9 +15,20 @@ const INTERACTIVE_SELECTORS = [
   "[role=switch]",
   "[role=combobox]",
   "[role=option]",
+  "[role=gridcell]",
+  "[role=menuitem]",
+  "[role=menuitemcheckbox]",
+  "[role=menuitemradio]",
+  "[role=treeitem]",
+  "[role=slider]",
+  "[role=tab]",
+  "[role=alert]",
+  "[role=status]",
   "[contenteditable=true]",
   "[onclick]",
   "[tabindex]",
+  "video",
+  "audio",
   "summary",
   "details",
   "label[for]",
@@ -26,9 +37,15 @@ const INTERACTIVE_SELECTORS = [
 const MAX_ELEMENTS = 200;
 
 function isVisible(el: HTMLElement): boolean {
-  if (el.offsetParent === null && getComputedStyle(el).position !== "fixed") return false;
+  if (el.offsetParent === null && getComputedStyle(el).position !== "fixed")
+    return false;
   const style = getComputedStyle(el);
-  if (style.display === "none" || style.visibility === "hidden" || style.opacity === "0") return false;
+  if (
+    style.display === "none" ||
+    style.visibility === "hidden" ||
+    style.opacity === "0"
+  )
+    return false;
   const rect = el.getBoundingClientRect();
   if (rect.width === 0 && rect.height === 0) return false;
   return true;
@@ -58,7 +75,9 @@ function generateSelector(el: HTMLElement): string {
       if (document.querySelectorAll(`#${escaped}`).length === 1) {
         return `#${escaped}`;
       }
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
   }
 
   // 2. data-testid
@@ -88,10 +107,16 @@ function generateSelector(el: HTMLElement): string {
     } else if (current.className && typeof current.className === "string") {
       const classes = current.className
         .split(/\s+/)
-        .filter(c => c && !c.startsWith("hover:") && !c.startsWith("focus:") && c.length < 30)
+        .filter(
+          (c) =>
+            c &&
+            !c.startsWith("hover:") &&
+            !c.startsWith("focus:") &&
+            c.length < 30,
+        )
         .slice(0, 2);
       if (classes.length) {
-        part += "." + classes.map(c => CSS.escape(c)).join(".");
+        part += "." + classes.map((c) => CSS.escape(c)).join(".");
       }
     }
 
@@ -99,7 +124,7 @@ function generateSelector(el: HTMLElement): string {
     const parent = current.parentElement;
     if (parent) {
       const siblings = Array.from(parent.children).filter(
-        (s) => s.tagName === current!.tagName
+        (s) => s.tagName === current!.tagName,
       );
       if (siblings.length > 1) {
         const index = siblings.indexOf(current) + 1;
@@ -114,13 +139,18 @@ function generateSelector(el: HTMLElement): string {
     const selector = parts.join(" > ");
     try {
       if (document.querySelectorAll(selector).length === 1) return selector;
-    } catch { /* continue building */ }
+    } catch {
+      /* continue building */
+    }
   }
 
   const finalSelector = parts.join(" > ");
   try {
-    if (document.querySelectorAll(finalSelector).length === 1) return finalSelector;
-  } catch { /* fallback */ }
+    if (document.querySelectorAll(finalSelector).length === 1)
+      return finalSelector;
+  } catch {
+    /* fallback */
+  }
 
   // Fallback: XPath-style with full tag path
   return finalSelector || el.tagName.toLowerCase();
@@ -129,7 +159,8 @@ function generateSelector(el: HTMLElement): string {
 function isInsideGhostPilot(el: HTMLElement): boolean {
   let current: Node | null = el;
   while (current) {
-    if (current instanceof HTMLElement && current.id === "ghostpilot-root") return true;
+    if (current instanceof HTMLElement && current.id === "ghostpilot-root")
+      return true;
     current = current.parentNode;
     if (current instanceof ShadowRoot) current = current.host;
   }
@@ -175,7 +206,20 @@ export function extractDOMSnapshot(): DOMSnapshot {
     const selector = generateSelector(el);
 
     const attributes: Record<string, string> = {};
-    for (const attr of ["name", "placeholder", "href", "data-testid", "aria-label", "title", "for"]) {
+    const observedAttrs = [
+      "name",
+      "placeholder",
+      "href",
+      "data-testid",
+      "aria-label",
+      "aria-expanded",
+      "aria-checked",
+      "aria-haspopup",
+      "title",
+      "for",
+      "role",
+    ];
+    for (const attr of observedAttrs) {
       const val = el.getAttribute(attr);
       if (val) attributes[attr] = val.slice(0, 100);
     }
@@ -186,7 +230,9 @@ export function extractDOMSnapshot(): DOMSnapshot {
       text,
       selector,
       isVisible: true,
-      isDisabled: el.hasAttribute("disabled") || el.getAttribute("aria-disabled") === "true",
+      isDisabled:
+        el.hasAttribute("disabled") ||
+        el.getAttribute("aria-disabled") === "true",
       attributes,
     };
 

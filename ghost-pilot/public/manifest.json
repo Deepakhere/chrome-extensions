@@ -9,6 +9,13 @@
     "service_worker": "assets/service-worker.js",
     "type": "module"
   },
+  "action": {
+    "default_icon": {
+      "16": "icons/ghost-pilot-16.png",
+      "32": "icons/ghost-pilot-32.png"
+    },
+    "default_title": "GhostPilot"
+  },
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
@@ -19,13 +26,14 @@
   ],
   "web_accessible_resources": [
     {
-      "resources": ["assets/*"],
+      "resources": ["assets/*", "icons/*"],
       "matches": ["<all_urls>"]
     }
   ],
   "icons": {
-    "16": "icons/icon16.png",
-    "48": "icons/icon48.png",
-    "128": "icons/icon128.png"
+    "16": "icons/ghost-pilot-16.png",
+    "32": "icons/ghost-pilot-32.png",
+    "48": "icons/ghost-pilot-48.png",
+    "128": "icons/ghost-pilot-128.png"
   }
 }

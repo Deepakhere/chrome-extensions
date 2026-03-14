@@ -20,6 +20,7 @@ export function useActionPlan() {
   const [task, setTask] = useState<AutomationTask | null>(null);
   const snapshotRef = useRef<DOMSnapshot | null>(null);
   const checkedKeyRef = useRef(false);
+  const lastPromptRef = useRef("");
 
   // Check API key on mount - only show api-key-needed if no key stored
   useEffect(() => {
@@ -38,13 +39,14 @@ export function useActionPlan() {
       });
   }, []);
 
-  const execute = useCallback(async (prompt: string) => {
+  const execute = useCallback(async (prompt: string, isContinuation = false) => {
     try {
+      lastPromptRef.current = prompt;
       // Phase 1: Extract DOM
       setPhase("extracting");
-      setError("");
-      setSteps([]);
-      setReasoning("");
+      if (!isContinuation) setError("");
+      if (!isContinuation) setSteps([]);
+      if (!isContinuation) setReasoning("");
       setWarnings([]);
 
       const snapshot = extractDOMSnapshot();
@@ -99,12 +101,14 @@ export function useActionPlan() {
       setSteps(plan.steps.map((s) => ({ step: s, status: "pending" })));
 
       // Determine if this is a multi-step/live task
+      // Standard actions (PlannedAction) always have an elementId.
+      // Multi-step live tasks (AutomationStep) rely on fuzzy label matching.
       const isLiveTask = plan.steps.some(
-        (s) => (s as any).fields || (s as any).action,
+        (s) => (s as any).fields || ((s as any).action && !(s as any).elementId),
       );
 
       if (isLiveTask) {
-        setTask({ steps: plan.steps as any });
+        setTask({ steps: plan.steps as any, isComplete: (plan as any).isComplete });
         setPhase("executing");
         // We do NOT set phase to 'done' here; the Live Runner in App.tsx
         // will manage the UI state via the isAutomating prop.
@@ -125,6 +129,12 @@ export function useActionPlan() {
     }
   }, []);
 
+  const continueAutomation = useCallback(() => {
+    if (lastPromptRef.current) {
+      execute(lastPromptRef.current, true);
+    }
+  }, [execute]);
+
   const reset = useCallback(() => {
     setPhase("idle");
     setSteps([]);
@@ -134,5 +144,15 @@ export function useActionPlan() {
     setTask(null);
   }, []);
 
-  return { phase, steps, reasoning, error, warnings, execute, reset, task };
+  return {
+    phase,
+    steps,
+    reasoning,
+    error,
+    warnings,
+    execute,
+    reset,
+    task,
+    continueAutomation,
+  };
 }
