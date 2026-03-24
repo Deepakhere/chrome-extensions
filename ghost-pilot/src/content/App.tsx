@@ -37,7 +37,6 @@ async function findElementWithRetry(
 ): Promise<HTMLElement | null> {
   for (let attempt = 0; attempt < retries; attempt++) {
     if (attempt > 0) {
-      console.log(`Retry ${attempt + 1}/${retries} for element...`);
       await delay(delayMs * attempt);
     }
 
@@ -151,7 +150,6 @@ async function executeStep(
   }
 
   const { action, elementId, value, description } = step;
-  console.log(`Executing: ${action} on ${elementId} with value: ${value}`);
 
   if (action === "wait") {
     await delay(parseInt(value || "1000", 10));
@@ -364,7 +362,6 @@ export default function App() {
         return; // Same task without new prompt, skip
       }
 
-      console.log("GhostPilot: Starting automation task", task);
       isRunningRef.current = true;
       lastTaskRef.current = task;
       setIsExecuting(true);
@@ -391,16 +388,11 @@ export default function App() {
             prev.map((s, idx) => (i === idx ? { ...s, status: "running" } : s)),
           );
 
-          console.log(`GhostPilot: Executing step ${i + 1}`, step);
-
           // Track step to detect loops
           const stepKey =
             `${step.action}-${step.elementId || step.description}`.toLowerCase();
           if (stepKey === lastExecutedStepRef.current) {
             repeatCountRef.current++;
-            console.log(
-              `GhostPilot: Repeated step detected (${repeatCountRef.current}x)`,
-            );
           } else {
             repeatCountRef.current = 0;
           }

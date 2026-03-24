@@ -10,6 +10,7 @@ interface Props {
   onClose: () => void;
   isAutomating?: boolean;
   currentStep?: number;
+  currentAction?: string;
   onStartAutomation?: (task: AutomationTask) => Promise<void>;
   phase: string;
   steps: StepState[];
@@ -25,24 +26,47 @@ function PhaseIndicator({
   phase,
   isAutomating,
   currentStep,
+  currentAction,
 }: {
   phase: string;
   isAutomating?: boolean;
   currentStep?: number;
+  currentAction?: string;
 }) {
   const messages: Record<string, string> = {
-    extracting: "Analyzing page elements...",
-    planning: "AI is creating action plan...",
-    executing: "Executing actions...",
-    automating: `AI is currently filling Step ${currentStep}...`,
-    done: "All actions completed!",
+    extracting: "🔍 Analyzing page elements...",
+    planning: "🤔 AI is thinking...",
+    executing: "⚡ Executing actions...",
+    done: "✅ All done!",
   };
-  const msg = isAutomating ? messages.automating : messages[phase];
+
+  const getActionEmoji = (action?: string) => {
+    if (!action) return "⚡";
+    if (action.toLowerCase().includes("click")) return "👆";
+    if (action.toLowerCase().includes("type")) return "⌨️";
+    if (action.toLowerCase().includes("select")) return "📋";
+    if (action.toLowerCase().includes("wait")) return "⏳";
+    return "⚡";
+  };
+
+  if (isAutomating && currentAction) {
+    return (
+      <div className="gp-phase gp-phase-executing">
+        <span className="gp-spinner" />
+        <span style={{ marginRight: "8px" }}>
+          {getActionEmoji(currentAction)}
+        </span>
+        <span>{currentAction}</span>
+      </div>
+    );
+  }
+
+  const msg = messages[phase];
   if (!msg) return null;
 
   return (
-    <div className={`gp-phase gp-phase-${isAutomating ? "executing" : phase}`}>
-      {(phase !== "done" || isAutomating) && <span className="gp-spinner" />}
+    <div className={`gp-phase gp-phase-${phase}`}>
+      {phase !== "done" && <span className="gp-spinner" />}
       {msg}
     </div>
   );
@@ -146,6 +170,9 @@ export function GhostModal({
               phase={phase}
               isAutomating={isAutomating}
               currentStep={currentStep}
+              currentAction={
+                steps.find((s) => s.status === "running")?.step.description
+              }
             />
           )}
 

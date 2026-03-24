@@ -32,21 +32,57 @@ export const AutomationService = {
   indicateAction(
     element: HTMLElement,
     message: string,
-    color: string = "#8b5cf6",
+    color: string = "#6b06c9",
   ) {
     this.clearHighlights();
 
-    // Get element position for label placement
     const rect = element.getBoundingClientRect();
-    const isInViewport = rect.top > 0 && rect.bottom < window.innerHeight;
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
 
-    // Create floating label attached to element
+    // Create pulsing dot indicator
+    const dot = document.createElement("div");
+    Object.assign(dot.style, {
+      position: "fixed",
+      left: `${centerX - 12}px`,
+      top: `${centerY - 12}px`,
+      width: "12px",
+      height: "12px",
+      background: color,
+      borderRadius: "50%",
+      zIndex: "2147483647",
+      pointerEvents: "none",
+      boxShadow: `0 0 0 4px ${color}40, 0 0 20px ${color}80`,
+      transform: "scale(0)",
+      transition: "transform 0.2s ease",
+    });
+    document.body.appendChild(dot);
+
+    // Animate dot
+    requestAnimationFrame(() => {
+      dot.style.transform = "scale(1)";
+    });
+
+    // Add pulse animation
+    const pulseKeyframes = `
+      @keyframes ghostpilot-pulse {
+        0% { transform: scale(1); box-shadow: 0 0 0 4px ${color}40, 0 0 20px ${color}80; }
+        50% { transform: scale(1.1); box-shadow: 0 0 0 8px ${color}20, 0 0 30px ${color}60; }
+        100% { transform: scale(1); box-shadow: 0 0 0 4px ${color}40, 0 0 20px ${color}80; }
+      }
+    `;
+    const styleSheet = document.createElement("style");
+    styleSheet.textContent = pulseKeyframes;
+    document.head.appendChild(styleSheet);
+    dot.style.animation = "ghostpilot-pulse 1.5s ease-in-out infinite";
+
+    // Floating label
     const label = document.createElement("div");
     Object.assign(label.style, {
       position: "fixed",
-      left: `${Math.min(rect.left + rect.width / 2 - 60, window.innerWidth - 140)}px`,
-      top: `${rect.top - 45}px`,
-      padding: "8px 16px",
+      left: `${Math.min(centerX - 80, window.innerWidth - 180)}px`,
+      top: `${rect.top - 50}px`,
+      padding: "10px 16px",
       background: color,
       color: "white",
       borderRadius: "8px",
@@ -54,89 +90,61 @@ export const AutomationService = {
       fontSize: "13px",
       fontWeight: "600",
       fontFamily: "system-ui, -apple-system, sans-serif",
-      boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+      boxShadow: "0 4px 20px rgba(0,0,0,0.4)",
       pointerEvents: "none",
       transform: "translateY(10px)",
       opacity: "0",
       transition: "all 0.3s ease",
       whiteSpace: "nowrap",
+      display: "flex",
+      alignItems: "center",
+      gap: "8px",
     });
-    label.textContent = message;
+
+    // Action icon
+    const icon = document.createElement("span");
+    icon.style.fontSize = "14px";
+    icon.textContent = message.startsWith("Click")
+      ? "👆"
+      : message.startsWith("Typing")
+        ? "⌨️"
+        : message.startsWith("Selecting")
+          ? "📋"
+          : "✨";
+
+    label.appendChild(icon);
+    label.appendChild(document.createTextNode(message));
     document.body.appendChild(label);
 
-    // Animate in
     requestAnimationFrame(() => {
       label.style.transform = "translateY(0)";
       label.style.opacity = "1";
     });
 
-    // Create arrow pointing to element
-    const arrow = document.createElement("div");
-    Object.assign(arrow.style, {
-      position: "fixed",
-      left: `${rect.left + rect.width / 2 - 8}px`,
-      top: `${rect.top - 5}px`,
-      width: "0",
-      height: "0",
-      borderLeft: "8px solid transparent",
-      borderRight: "8px solid transparent",
-      borderTop: `8px solid ${color}`,
-      zIndex: "2147483647",
-      pointerEvents: "none",
-      transform: "translateY(10px)",
-      opacity: "0",
-      transition: "all 0.3s ease",
-    });
-    document.body.appendChild(arrow);
-
-    requestAnimationFrame(() => {
-      arrow.style.transform = "translateY(0)";
-      arrow.style.opacity = "1";
-    });
-
-    // Highlight the element
-    const highlight = document.createElement("div");
-    Object.assign(highlight.style, {
-      position: "fixed",
-      left: `${rect.left - 4}px`,
-      top: `${rect.top - 4}px`,
-      width: `${rect.width + 8}px`,
-      height: `${rect.height + 8}px`,
-      border: `3px solid ${color}`,
-      borderRadius: "4px",
-      zIndex: "2147483646",
-      pointerEvents: "none",
-      boxShadow: `0 0 20px ${color}40`,
-      transition: "all 0.3s ease",
-    });
-    document.body.appendChild(highlight);
-
     // Scroll element into view
     element.scrollIntoView({ behavior: "smooth", block: "center" });
 
-    // Store references for cleanup
+    // Store for cleanup
     activeHighlight = {
       remove: () => {
+        dot.remove();
         label.remove();
-        arrow.remove();
-        highlight.remove();
+        styleSheet.remove();
       },
     };
 
-    // Auto-remove after 2 seconds
+    // Auto-remove after 2.5 seconds
     setTimeout(() => {
       if (activeHighlight) {
+        dot.style.transform = "scale(0)";
+        dot.style.transition = "transform 0.3s ease";
         label.style.opacity = "0";
         label.style.transform = "translateY(-10px)";
-        arrow.style.opacity = "0";
-        arrow.style.transform = "translateY(-10px)";
-        highlight.style.opacity = "0";
-        highlight.style.boxShadow = "none";
         setTimeout(() => {
           this.clearHighlights();
         }, 300);
       }
-    }, 2000);
+    }, 2500);
   },
 
   showStatus(message: string, type: "info" | "success" | "error" = "info") {
@@ -148,13 +156,19 @@ export const AutomationService = {
       error: "#ef4444",
     };
 
+    const icons = {
+      info: "⏳",
+      success: "✅",
+      error: "❌",
+    };
+
     const status = document.createElement("div");
     Object.assign(status.style, {
       position: "fixed",
       bottom: "24px",
       left: "50%",
       transform: "translateX(-50%)",
-      padding: "16px 32px",
+      padding: "16px 28px",
       background: "#1e293b",
       color: "white",
       borderRadius: "12px",
@@ -170,10 +184,8 @@ export const AutomationService = {
     });
 
     const icon = document.createElement("span");
-    icon.style.fontSize = "20px";
-    if (type === "success") icon.textContent = "✓";
-    else if (type === "error") icon.textContent = "✕";
-    else icon.textContent = "→";
+    icon.style.fontSize = "18px";
+    icon.textContent = icons[type];
 
     status.appendChild(icon);
     status.appendChild(document.createTextNode(message));
