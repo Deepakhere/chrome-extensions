@@ -71,29 +71,27 @@ export function ActionTimeline({ steps, reasoning, warnings }: Props) {
       {warnings && warnings.length > 0 && (
         <div className="gp-warnings">
           {warnings.map((w, i) => (
-            <div key={i} className="gp-warning">&#9888; {w}</div>
+            <div key={i} className="gp-warning">
+              &#9888; {w}
+            </div>
           ))}
         </div>
       )}
 
       <div className="gp-action-feed">
         {steps.map((s, i) => (
-          <div
-            key={i}
-            className={`gp-action gp-action-${s.status}`}
-          >
+          <div key={i} className={`gp-action gp-action-${s.status}`}>
             <span className={`gp-dot gp-dot-${s.status}`} />
             <span className="gp-action-text">
               {s.status === "running"
                 ? getRunningLabel(s)
                 : s.status === "done"
-                ? getActionLabel(s)
-                : s.status === "error"
-                ? getActionLabel(s)
-                : s.status === "skipped"
-                ? s.step.description
-                : s.step.description
-              }
+                  ? getActionLabel(s)
+                  : s.status === "error"
+                    ? getActionLabel(s)
+                    : s.status === "skipped"
+                      ? s.step.description
+                      : s.step.description}
             </span>
             {s.error && <span className="gp-action-error">{s.error}</span>}
           </div>

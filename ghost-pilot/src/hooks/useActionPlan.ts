@@ -8,7 +8,6 @@ import type {
 import { extractDOMSnapshot } from "../core/dom-extractor";
 import { serializeSnapshot } from "../core/dom-serializer";
 import { parseAIResponse } from "../ai/response-parser";
-import { runActionPlan } from "../core/action-runner";
 import { type AutomationTask } from "../services/AutomationService";
 
 export function useActionPlan() {
@@ -21,9 +20,16 @@ export function useActionPlan() {
   const snapshotRef = useRef<DOMSnapshot | null>(null);
   const checkedKeyRef = useRef(false);
   const lastPromptRef = useRef("");
+  const turnCountRef = useRef(0);
+  const completedActionsRef = useRef<string[]>([]);
 
   // Check API key on mount - only show api-key-needed if no key stored
   useEffect(() => {
+    if (!chrome.runtime?.id) {
+      setError("Extension context invalidated. Please refresh this page (F5).");
+      setPhase("error");
+      return;
+    }
     if (checkedKeyRef.current) return;
     checkedKeyRef.current = true;
     chrome.runtime
@@ -39,93 +45,116 @@ export function useActionPlan() {
       });
   }, []);
 
-  const execute = useCallback(async (prompt: string, isContinuation = false) => {
-    try {
-      lastPromptRef.current = prompt;
-      // Phase 1: Extract DOM
-      setPhase("extracting");
-      if (!isContinuation) setError("");
-      if (!isContinuation) setSteps([]);
-      if (!isContinuation) setReasoning("");
-      setWarnings([]);
+  const execute = useCallback(
+    async (prompt: string, isContinuation = false) => {
+      try {
+        lastPromptRef.current = prompt;
 
-      const snapshot = extractDOMSnapshot();
-      snapshotRef.current = snapshot;
-      const domText = serializeSnapshot(snapshot);
+        if (!isContinuation) {
+          turnCountRef.current = 0;
+          completedActionsRef.current = [];
+        }
+        turnCountRef.current++;
 
-      if (snapshot.elements.length === 0) {
-        setError("No interactive elements found on this page.");
-        setPhase("error");
-        return;
-      }
+        if (turnCountRef.current > 10) {
+          throw new Error(
+            "Task exceeded maximum turns (10). Stopping to prevent infinite loop.",
+          );
+        }
 
-      // Phase 2: Get plan from AI
-      setPhase("planning");
+        // Phase 1: Extract DOM
+        setPhase("extracting");
+        if (!isContinuation) setError("");
+        if (!isContinuation) setSteps([]);
+        if (!isContinuation) setReasoning("");
+        setWarnings([]);
 
-      const response = await chrome.runtime.sendMessage({
-        type: "PLAN_ACTIONS",
-        dom: domText,
-        prompt,
-      });
+        const snapshot = extractDOMSnapshot();
+        snapshotRef.current = snapshot;
+        const domText = serializeSnapshot(snapshot);
 
-      if (response.error) {
-        if (response.error === "API_KEY_MISSING") {
-          setPhase("api-key-needed");
+        if (snapshot.elements.length === 0) {
+          setError("No interactive elements found on this page.");
+          setPhase("error");
           return;
         }
-        setError(response.error);
-        setPhase("error");
-        return;
-      }
 
-      let plan: ActionPlan;
-      try {
-        plan = parseAIResponse(response.data);
-      } catch (parseErr) {
-        setError(`Failed to parse AI response: ${(parseErr as Error).message}`);
-        setPhase("error");
-        return;
-      }
+        // Build context about what's already been done
+        const completedContext = completedActionsRef.current.length > 0
+          ? `\n\n## ALREADY COMPLETED (DO NOT REPEAT THESE ACTIONS):\n${completedActionsRef.current.map(a => `- ${a}`).join("\n")}\n\nIMPORTANT: The page may have changed since these actions. Generate new steps based on the current DOM snapshot above.`
+          : "";
 
-      setReasoning(plan.reasoning);
-      if (plan.warnings?.length) setWarnings(plan.warnings);
+        // Phase 2: Get plan from AI
+        setPhase("planning");
 
-      if (plan.steps.length === 0) {
-        setError(
-          "The AI couldn't determine actions for this task. " + plan.reasoning,
-        );
-        setPhase("error");
-        return;
-      }
-
-      setSteps(plan.steps.map((s) => ({ step: s, status: "pending" })));
-
-      // Determine if this is a multi-step/live task
-      // Standard actions (PlannedAction) always have an elementId.
-      // Multi-step live tasks (AutomationStep) rely on fuzzy label matching.
-      const isLiveTask = plan.steps.some(
-        (s) => (s as any).fields || ((s as any).action && !(s as any).elementId),
-      );
-
-      if (isLiveTask) {
-        setTask({ steps: plan.steps as any, isComplete: (plan as any).isComplete });
-        setPhase("executing");
-        // We do NOT set phase to 'done' here; the Live Runner in App.tsx
-        // will manage the UI state via the isAutomating prop.
-      } else {
-        setPhase("executing");
-        await runActionPlan(plan, snapshot, (index, status, err) => {
-          setSteps((prev) =>
-            prev.map((s, i) =>
-              i === index ? { ...s, status, error: err } : s,
-            ),
+        if (!chrome.runtime?.id) {
+          throw new Error(
+            "Extension context invalidated. Please refresh this page (F5).",
           );
+        }
+
+        const fullPrompt = prompt + completedContext;
+        
+        const response = await chrome.runtime.sendMessage({
+          type: "PLAN_ACTIONS",
+          dom: domText,
+          prompt: fullPrompt,
         });
-        setPhase("done");
+
+        if (response.error) {
+          if (response.error === "API_KEY_MISSING") {
+            setPhase("api-key-needed");
+            return;
+          }
+          setError(response.error);
+          setPhase("error");
+          return;
+        }
+
+        let plan: ActionPlan;
+        try {
+          plan = parseAIResponse(response.data);
+        } catch (parseErr) {
+          setError(
+            `Failed to parse AI response: ${(parseErr as Error).message}`,
+          );
+          setPhase("error");
+          return;
+        }
+
+        setReasoning(plan.reasoning);
+        if (plan.warnings?.length) setWarnings(plan.warnings);
+
+        if (plan.steps.length === 0) {
+          setError(
+            "The AI couldn't determine actions for this task. " +
+              plan.reasoning,
+          );
+          setPhase("error");
+          return;
+        }
+
+        setSteps(plan.steps.map((s) => ({ step: s, status: "pending" })));
+
+      // Route all execution to the component-based runner in App.tsx.
+      // This ensures we can handle multi-turn "isComplete: false" tasks properly.
+      setTask({
+        steps: plan.steps as any,
+        isComplete: plan.isComplete,
+        snapshot: snapshot,
+      });
+      setPhase("executing");
+      } catch (err) {
+        setError((err as Error).message);
+        setPhase("error");
       }
-    } catch (err) {
-      setError((err as Error).message);
-      setPhase("error");
+    },
+    [],
+  );
+
+  const addCompletedAction = useCallback((action: string) => {
+    if (!completedActionsRef.current.includes(action)) {
+      completedActionsRef.current.push(action);
     }
   }, []);
 
@@ -146,6 +175,8 @@ export function useActionPlan() {
 
   return {
     phase,
+    setPhase,
+    setSteps,
     steps,
     reasoning,
     error,
@@ -154,5 +185,6 @@ export function useActionPlan() {
     reset,
     task,
     continueAutomation,
+    addCompletedAction,
   };
 }

@@ -25,21 +25,22 @@ export function ApiKeyInput({ onSave }: Props) {
   return (
     <div className="gp-api-key-input">
       <p className="gp-api-label">
-        Enter your Google Gemini API key to get started:
+        Enter your Groq API key to get started:
       </p>
       <input
         ref={inputRef}
         type="password"
         value={key}
         onChange={(e) => setKey(e.target.value)}
-        placeholder="AIzaSy..."
+        placeholder="gsk_..."
         onKeyDown={(e) => e.key === "Enter" && handleSave()}
       />
       <button onClick={handleSave} disabled={!key.trim() || saving}>
         {saving ? "Saving..." : "Save Key"}
       </button>
       <p className="gp-api-note">
-        Your key is stored locally in the extension and never shared. Get a key at aistudio.google.com/apikey
+        Your key is stored locally in the extension and never shared. Get a free key
+        at console.groq.com
       </p>
     </div>
   );

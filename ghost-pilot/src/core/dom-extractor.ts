@@ -1,11 +1,13 @@
 import type { DOMElement, DOMSnapshot } from "./types";
 
 const INTERACTIVE_SELECTORS = [
+  // Basic form elements
   "button",
   "a[href]",
   "input:not([type=hidden])",
   "textarea",
   "select",
+  // All ARIA roles
   "[role=button]",
   "[role=link]",
   "[role=menuitem]",
@@ -16,29 +18,45 @@ const INTERACTIVE_SELECTORS = [
   "[role=combobox]",
   "[role=option]",
   "[role=gridcell]",
-  "[role=menuitem]",
   "[role=menuitemcheckbox]",
   "[role=menuitemradio]",
   "[role=treeitem]",
   "[role=slider]",
-  "[role=tab]",
   "[role=alert]",
   "[role=status]",
+  "[role=dialog]",
+  "[role=modal]",
+  "[role=textbox]",
+  "[role=searchbox]",
+  "[role=listbox]",
+  "[role=progressbar]",
+  // Interactive attributes
   "[contenteditable=true]",
   "[onclick]",
-  "[tabindex]",
+  "[ondblclick]",
+  "[tabindex]:not([tabindex='-1'])",
+  // Other elements
   "video",
   "audio",
   "summary",
   "details",
-  "label[for]",
+  "label",
+  "fieldset",
+  "legend",
+  "optgroup",
+  "option",
+  // Common modal/container classes (fallback)
+  "[class*='modal']",
+  "[class*='dialog']",
+  "[class*='popup']",
+  "[class*='overlay']",
+  "[id*='modal']",
+  "[id*='dialog']",
 ].join(", ");
 
-const MAX_ELEMENTS = 200;
+const MAX_ELEMENTS = 500;
 
 function isVisible(el: HTMLElement): boolean {
-  if (el.offsetParent === null && getComputedStyle(el).position !== "fixed")
-    return false;
   const style = getComputedStyle(el);
   if (
     style.display === "none" ||
@@ -46,8 +64,24 @@ function isVisible(el: HTMLElement): boolean {
     style.opacity === "0"
   )
     return false;
+  
+  // Check if element has size
   const rect = el.getBoundingClientRect();
-  if (rect.width === 0 && rect.height === 0) return false;
+  if (rect.width < 2 && rect.height < 2) return false;
+  
+  // Allow fixed position elements (common for modals)
+  if (style.position === "fixed" || style.position === "absolute") {
+    // But still check if it's actually on screen
+    if (rect.top > window.innerHeight || rect.bottom < 0 || 
+        rect.left > window.innerWidth || rect.right < 0) {
+      return false;
+    }
+    return true;
+  }
+  
+  // For regular elements, check offsetParent
+  if (el.offsetParent === null) return false;
+  
   return true;
 }
 
@@ -215,6 +249,9 @@ export function extractDOMSnapshot(): DOMSnapshot {
       "aria-expanded",
       "aria-checked",
       "aria-haspopup",
+      "aria-invalid",
+      "aria-required",
+      "aria-errormessage",
       "title",
       "for",
       "role",

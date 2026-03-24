@@ -1,10 +1,18 @@
 {
   "manifest_version": 3,
   "name": "GhostPilot - AI Web Agent",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "AI-powered browser automation agent. Press ALT+P to control any web app with natural language.",
-  "permissions": ["activeTab", "storage"],
-  "host_permissions": ["https://generativelanguage.googleapis.com/*"],
+  "permissions": [
+    "activeTab",
+    "storage",
+    "scripting",
+    "tabs"
+  ],
+  "host_permissions": [
+    "https://api.groq.com/*",
+    "<all_urls>"
+  ],
   "background": {
     "service_worker": "assets/service-worker.js",
     "type": "module"
@@ -14,7 +22,7 @@
       "16": "icons/ghost-pilot-16.png",
       "32": "icons/ghost-pilot-32.png"
     },
-    "default_title": "GhostPilot"
+    "default_title": "GhostPilot - AI Agent"
   },
   "content_scripts": [
     {

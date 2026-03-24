@@ -26,6 +26,8 @@ export interface DOMSnapshot {
 
 export type ActionType =
   | "click"
+  | "double-click"
+  | "right-click"
   | "type"
   | "select"
   | "check"
@@ -34,7 +36,8 @@ export type ActionType =
   | "scroll-to"
   | "wait"
   | "hover"
-  | "press-key";
+  | "press-key"
+  | "drag";
 
 export interface PlannedAction {
   step: number;
@@ -46,6 +49,7 @@ export interface PlannedAction {
 
 export interface ActionPlan {
   reasoning: string;
+  isComplete?: boolean;
   steps: PlannedAction[];
   warnings?: string[];
 }

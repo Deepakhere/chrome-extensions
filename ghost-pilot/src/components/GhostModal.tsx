@@ -1,16 +1,24 @@
 import { useEffect, useRef } from "react";
-import { useActionPlan } from "../hooks/useActionPlan";
+import type { AutomationTask } from "../services/AutomationService";
+import type { StepState } from "../core/types";
 import { useDrag } from "../hooks/useDrag";
 import { PromptInput } from "./PromptInput";
 import { ActionTimeline } from "./ActionTimeline";
 import { ApiKeyInput } from "./ApiKeyInput";
-import { type AutomationTask } from "../services/AutomationService";
 
 interface Props {
   onClose: () => void;
   isAutomating?: boolean;
   currentStep?: number;
   onStartAutomation?: (task: AutomationTask) => Promise<void>;
+  phase: string;
+  steps: StepState[];
+  reasoning: string;
+  error: string;
+  warnings: string[];
+  execute: (prompt: string) => Promise<void>;
+  reset: () => void;
+  task: AutomationTask | null;
 }
 
 function PhaseIndicator({
@@ -45,9 +53,15 @@ export function GhostModal({
   isAutomating,
   currentStep,
   onStartAutomation,
+  phase,
+  steps,
+  reasoning,
+  error,
+  warnings,
+  execute,
+  reset,
+  task,
 }: Props) {
-  const { phase, steps, reasoning, error, warnings, execute, reset, task } =
-    useActionPlan();
   const barRef = useRef<HTMLDivElement>(null);
   const { position, isCentered, onDragStart } = useDrag(barRef);
 
@@ -108,6 +122,13 @@ export function GhostModal({
 
         {/* Content */}
         <div className="gp-body">
+          {reasoning && (phase === "executing" || phase === "done") && (
+            <div className="gp-thought-trail">
+              <span className="gp-thought-label">Agent Strategy:</span>
+              <p className="gp-thought-text">{reasoning}</p>
+            </div>
+          )}
+
           {phase === "api-key-needed" && (
             <ApiKeyInput
               onSave={() => {

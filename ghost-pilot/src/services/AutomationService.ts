@@ -1,65 +1,195 @@
+import type { DOMSnapshot } from "../core/types";
+
+let activeHighlight: { remove: () => void } | null = null;
+let activeStatus: HTMLElement | null = null;
+
 export interface AutomationStep {
   fields?: Record<string, string>;
   action?: string;
+  elementId?: string;
+  value?: string;
   description: string;
 }
 
 export interface AutomationTask {
   steps: AutomationStep[];
+  snapshot?: DOMSnapshot;
   isComplete?: boolean;
 }
 
 export const AutomationService = {
-  /**
-   * Highlights an element and shows a status message to make actions visible.
-   */
+  clearHighlights() {
+    if (activeHighlight) {
+      activeHighlight.remove();
+      activeHighlight = null;
+    }
+    if (activeStatus) {
+      activeStatus.remove();
+      activeStatus = null;
+    }
+  },
+
   indicateAction(
     element: HTMLElement,
     message: string,
-    color: string = "#7c3aed",
+    color: string = "#8b5cf6",
   ) {
-    // 1. Highlight the element
-    const originalOutline = element.style.outline;
-    const originalTransition = element.style.transition;
+    this.clearHighlights();
 
-    element.style.outline = `4px solid ${color}`;
-    element.style.outlineOffset = "-2px";
-    element.style.transition = "outline 0.2s ease-in-out";
+    // Get element position for label placement
+    const rect = element.getBoundingClientRect();
+    const isInViewport = rect.top > 0 && rect.bottom < window.innerHeight;
+
+    // Create floating label attached to element
+    const label = document.createElement("div");
+    Object.assign(label.style, {
+      position: "fixed",
+      left: `${Math.min(rect.left + rect.width / 2 - 60, window.innerWidth - 140)}px`,
+      top: `${rect.top - 45}px`,
+      padding: "8px 16px",
+      background: color,
+      color: "white",
+      borderRadius: "8px",
+      zIndex: "2147483647",
+      fontSize: "13px",
+      fontWeight: "600",
+      fontFamily: "system-ui, -apple-system, sans-serif",
+      boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+      pointerEvents: "none",
+      transform: "translateY(10px)",
+      opacity: "0",
+      transition: "all 0.3s ease",
+      whiteSpace: "nowrap",
+    });
+    label.textContent = message;
+    document.body.appendChild(label);
+
+    // Animate in
+    requestAnimationFrame(() => {
+      label.style.transform = "translateY(0)";
+      label.style.opacity = "1";
+    });
+
+    // Create arrow pointing to element
+    const arrow = document.createElement("div");
+    Object.assign(arrow.style, {
+      position: "fixed",
+      left: `${rect.left + rect.width / 2 - 8}px`,
+      top: `${rect.top - 5}px`,
+      width: "0",
+      height: "0",
+      borderLeft: "8px solid transparent",
+      borderRight: "8px solid transparent",
+      borderTop: `8px solid ${color}`,
+      zIndex: "2147483647",
+      pointerEvents: "none",
+      transform: "translateY(10px)",
+      opacity: "0",
+      transition: "all 0.3s ease",
+    });
+    document.body.appendChild(arrow);
+
+    requestAnimationFrame(() => {
+      arrow.style.transform = "translateY(0)";
+      arrow.style.opacity = "1";
+    });
+
+    // Highlight the element
+    const highlight = document.createElement("div");
+    Object.assign(highlight.style, {
+      position: "fixed",
+      left: `${rect.left - 4}px`,
+      top: `${rect.top - 4}px`,
+      width: `${rect.width + 8}px`,
+      height: `${rect.height + 8}px`,
+      border: `3px solid ${color}`,
+      borderRadius: "4px",
+      zIndex: "2147483646",
+      pointerEvents: "none",
+      boxShadow: `0 0 20px ${color}40`,
+      transition: "all 0.3s ease",
+    });
+    document.body.appendChild(highlight);
+
+    // Scroll element into view
     element.scrollIntoView({ behavior: "smooth", block: "center" });
 
-    // 2. Show floating status message at the bottom of the screen
+    // Store references for cleanup
+    activeHighlight = {
+      remove: () => {
+        label.remove();
+        arrow.remove();
+        highlight.remove();
+      }
+    };
+
+    // Auto-remove after 2 seconds
+    setTimeout(() => {
+      if (activeHighlight) {
+        label.style.opacity = "0";
+        label.style.transform = "translateY(-10px)";
+        arrow.style.opacity = "0";
+        arrow.style.transform = "translateY(-10px)";
+        highlight.style.opacity = "0";
+        highlight.style.boxShadow = "none";
+        setTimeout(() => {
+          this.clearHighlights();
+        }, 300);
+      }
+    }, 2000);
+  },
+
+  showStatus(message: string, type: "info" | "success" | "error" = "info") {
+    this.clearHighlights();
+
+    const colors = {
+      info: "#3b82f6",
+      success: "#22c55e",
+      error: "#ef4444",
+    };
+
     const status = document.createElement("div");
     Object.assign(status.style, {
       position: "fixed",
-      bottom: "20px",
-      right: "20px",
-      padding: "12px 24px",
+      bottom: "24px",
+      left: "50%",
+      transform: "translateX(-50%)",
+      padding: "16px 32px",
       background: "#1e293b",
       color: "white",
       borderRadius: "12px",
       zIndex: "2147483647",
-      fontSize: "14px",
+      fontSize: "15px",
       fontWeight: "600",
-      boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.2)",
-      border: `1px solid ${color}`,
-      pointerEvents: "none",
-      fontFamily: "sans-serif",
+      fontFamily: "system-ui, -apple-system, sans-serif",
+      boxShadow: "0 10px 25px rgba(0,0,0,0.3)",
+      border: `2px solid ${colors[type]}`,
+      display: "flex",
+      alignItems: "center",
+      gap: "12px",
     });
-    status.innerText = `GhostPilot: ${message}`;
+
+    const icon = document.createElement("span");
+    icon.style.fontSize = "20px";
+    if (type === "success") icon.textContent = "✓";
+    else if (type === "error") icon.textContent = "✕";
+    else icon.textContent = "→";
+
+    status.appendChild(icon);
+    status.appendChild(document.createTextNode(message));
     document.body.appendChild(status);
+    activeStatus = status;
 
     setTimeout(() => {
-      element.style.outline = originalOutline;
-      element.style.transition = originalTransition;
-      status.style.opacity = "0";
-      status.style.transition = "opacity 0.5s ease-out";
-      setTimeout(() => status.remove(), 500);
-    }, 1500);
+      if (activeStatus) {
+        status.style.opacity = "0";
+        status.style.transform = "translateX(-50%) translateY(20px)";
+        status.style.transition = "all 0.3s ease";
+        setTimeout(() => status.remove(), 300);
+      }
+    }, 3000);
   },
 
-  /**
-   * Helper to poll the DOM until an element is found or timeout occurs.
-   */
   async pollForElement(
     predicate: () => HTMLElement | null,
     timeout = 5000,
@@ -73,142 +203,10 @@ export const AutomationService = {
     return null;
   },
 
-  async fillField(label: string, value: string): Promise<boolean> {
-    console.log(`Automation: Searching for field "${label}"`);
-
-    const findElement = () => {
-      // Try finding by label text first (human-centric)
-      const labels = Array.from(document.querySelectorAll("label"));
-      const targetLabel = labels.find((l) =>
-        l.textContent?.toLowerCase().includes(label.toLowerCase()),
-      );
-      if (targetLabel) {
-        return (
-          targetLabel.htmlFor
-            ? document.getElementById(targetLabel.htmlFor)
-            : targetLabel.querySelector("input, textarea")
-        ) as HTMLInputElement | HTMLTextAreaElement;
-      }
-
-      const selectors = [
-        `input[name="${label}" i]`,
-        `input[placeholder*="${label}" i]`,
-        `input[aria-label*="${label}" i]`,
-        `textarea[name="${label}" i]`,
-        `textarea[placeholder*="${label}" i]`,
-      ];
-
-      for (const selector of selectors) {
-        const el = document.querySelector(selector) as
-          | HTMLInputElement
-          | HTMLTextAreaElement;
-        if (el) return el;
-      }
-      return null;
-    };
-
-    const element = await this.pollForElement(findElement);
-
-    if (
-      element instanceof HTMLInputElement ||
-      element instanceof HTMLTextAreaElement
-    ) {
-      this.indicateAction(element, `Filling "${label}"...`);
-      element.focus();
-
-      // Use native setter to bypass framework interceptors (React/Vue)
-      const prototype =
-        element instanceof HTMLInputElement
-          ? window.HTMLInputElement.prototype
-          : window.HTMLTextAreaElement.prototype;
-      const nativeSetter = Object.getOwnPropertyDescriptor(
-        prototype,
-        "value",
-      )?.set;
-
-      try {
-        if (nativeSetter) {
-          nativeSetter.call(element, value);
-        } else {
-          element.value = value;
-        }
-      } catch {
-        element.value = value;
-      }
-
-      // Critical: Dispatch events so React/Vue state managers detect the change
-      element.dispatchEvent(new Event("input", { bubbles: true }));
-      element.dispatchEvent(new Event("change", { bubbles: true }));
-      element.blur();
-      return true;
-    }
-    return false;
-  },
-
-  async clickButton(text: string): Promise<boolean> {
-    console.log(`Automation: Searching for button "${text}"`);
-
-    const findTarget = () => {
-      const interactiveRoles =
-        'button, a, input[type="button"], input[type="submit"], [role="button"], [role="gridcell"], [role="option"], [role="tab"], [role="switch"], [role="menuitem"], [type="submit"]';
-      const candidates = document.querySelectorAll(interactiveRoles);
-
-      let found = Array.from(candidates).find((el) => {
-        const content = (
-          (el instanceof HTMLInputElement ? el.value : el.textContent) ?? ""
-        ).trim();
-        const aria = el.getAttribute("aria-label") || "";
-        const title = el.getAttribute("title") || "";
-        const name = el.getAttribute("name") || "";
-
-        return (
-          content.toLowerCase().includes(text.toLowerCase()) ||
-          aria.toLowerCase().includes(text.toLowerCase()) ||
-          title.toLowerCase().includes(text.toLowerCase()) ||
-          name.toLowerCase() === text.toLowerCase()
-        );
-      });
-
-      // Fallback: If text is "click" or "submit", look for primary buttons
-      if (
-        !found &&
-        (text.toLowerCase() === "click" || text.toLowerCase() === "submit")
-      ) {
-        found = document.querySelector(
-          'button[type="submit"], button.primary, .primary-button, .btn-primary, [role="button"][type="submit"], .save-button, .submit-button',
-        ) as HTMLElement;
-      }
-
-      return found as HTMLElement;
-    };
-
-    const target = await this.pollForElement(findTarget);
-
-    if (target) {
-      this.indicateAction(target, `Clicking "${text}"...`, "#10b981");
-      await new Promise((r) => setTimeout(r, 200));
-
-      // Robust click sequence to trigger all types of listeners
-      target.focus();
-      target.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
-      target.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
-      target.dispatchEvent(new PointerEvent("pointerup", { bubbles: true }));
-      target.dispatchEvent(new MouseEvent("mouseup", { bubbles: true }));
-      target.click();
-      return true;
-    }
-    return false;
-  },
-
   async waitForNextStep(delay = 1500): Promise<void> {
-    // Gives the page time to react to the click (animations, network requests)
     return new Promise((resolve) => setTimeout(resolve, delay));
   },
 
-  /**
-   * Waits for the DOM to stop changing.
-   * Useful after clicking buttons that open modals or load data.
-   */
   async waitForStability(timeout = 3000, idleTime = 500): Promise<void> {
     return new Promise((resolve) => {
       let lastMutation = Date.now();

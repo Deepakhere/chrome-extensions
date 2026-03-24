@@ -34,6 +34,7 @@ export function parseAIResponse(responseText: string): ActionPlan {
 
   return {
     reasoning: parsed.reasoning,
+    isComplete: parsed.isComplete ?? true,
     steps: parsed.steps,
     warnings: parsed.warnings || [],
   };
