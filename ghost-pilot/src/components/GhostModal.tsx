@@ -130,7 +130,7 @@ export function GhostModal({
         {/* Header */}
         <div className="gp-header">
           <div className="gp-logo">
-            <span className="w-8 h-8 rounded-lg flex items-center justify-center text-lg bg-indigo-500/10 shrink-0 select-none">
+            <span className="w-8 h-8 rounded-lg flex items-center justify-center text-lg bg-white/10 shrink-0 select-none">
               👻
             </span>
             <span>GhostPilot</span>
@@ -146,13 +146,6 @@ export function GhostModal({
 
         {/* Content */}
         <div className="gp-body">
-          {reasoning && (phase === "executing" || phase === "done") && (
-            <div className="gp-thought-trail">
-              <span className="gp-thought-label">Agent Strategy:</span>
-              <p className="gp-thought-text">{reasoning}</p>
-            </div>
-          )}
-
           {phase === "api-key-needed" && (
             <ApiKeyInput
               onSave={() => {
@@ -177,14 +170,11 @@ export function GhostModal({
           )}
 
           {phase === "executing" && !isAutomating && (
-            <>
-              <PhaseIndicator phase={phase} />
-              <ActionTimeline
-                steps={steps}
-                reasoning={reasoning}
-                warnings={warnings}
-              />
-            </>
+            <ActionTimeline
+              steps={steps}
+              reasoning={undefined}
+              warnings={warnings}
+            />
           )}
 
           {phase === "done" && (
@@ -192,7 +182,7 @@ export function GhostModal({
               <PhaseIndicator phase={phase} />
               <ActionTimeline
                 steps={steps}
-                reasoning={reasoning}
+                reasoning={undefined}
                 warnings={warnings}
               />
               <button
@@ -211,7 +201,7 @@ export function GhostModal({
               {steps.length > 0 && (
                 <ActionTimeline
                   steps={steps}
-                  reasoning={reasoning}
+                  reasoning={undefined}
                   warnings={warnings}
                 />
               )}

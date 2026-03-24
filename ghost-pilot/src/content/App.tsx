@@ -167,10 +167,7 @@ async function executeStep(
     await delay(500);
   }
 
-  AutomationService.indicateAction(
-    element,
-    `${action} ${description || elementId || ""}`,
-  );
+  AutomationService.indicateAction(element);
 
   switch (action) {
     case "click": {

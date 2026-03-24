@@ -89,13 +89,6 @@ function getRunningLabel(step: StepState): string {
 export function ActionTimeline({ steps, reasoning, warnings }: Props) {
   return (
     <div className="gp-timeline">
-      {reasoning && (
-        <div className="gp-thought-trail">
-          <span className="gp-thought-label">Strategy:</span>
-          <p className="gp-thought-text">{reasoning}</p>
-        </div>
-      )}
-
       {warnings && warnings.length > 0 && (
         <div className="gp-warnings">
           {warnings.map((w, i) => (

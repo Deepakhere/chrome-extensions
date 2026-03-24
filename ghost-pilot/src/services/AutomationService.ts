@@ -29,26 +29,23 @@ export const AutomationService = {
     }
   },
 
-  indicateAction(
-    element: HTMLElement,
-    message: string,
-    color: string = "#6b06c9",
-  ) {
+  indicateAction(element: HTMLElement) {
     this.clearHighlights();
 
     const rect = element.getBoundingClientRect();
     const centerX = rect.left + rect.width / 2;
     const centerY = rect.top + rect.height / 2;
 
-    // Create pulsing dot indicator
+    const color = "#ffffff";
+
     const dot = document.createElement("div");
     Object.assign(dot.style, {
       position: "fixed",
-      left: `${centerX - 12}px`,
-      top: `${centerY - 12}px`,
-      width: "12px",
-      height: "12px",
-      background: color,
+      left: `${centerX - 10}px`,
+      top: `${centerY - 10}px`,
+      width: "20px",
+      height: "20px",
+      background: "linear-gradient(135deg, #666, #fff)",
       borderRadius: "50%",
       zIndex: "2147483647",
       pointerEvents: "none",
@@ -58,17 +55,15 @@ export const AutomationService = {
     });
     document.body.appendChild(dot);
 
-    // Animate dot
     requestAnimationFrame(() => {
       dot.style.transform = "scale(1)";
     });
 
-    // Add pulse animation
     const pulseKeyframes = `
       @keyframes ghostpilot-pulse {
-        0% { transform: scale(1); box-shadow: 0 0 0 4px ${color}40, 0 0 20px ${color}80; }
-        50% { transform: scale(1.1); box-shadow: 0 0 0 8px ${color}20, 0 0 30px ${color}60; }
-        100% { transform: scale(1); box-shadow: 0 0 0 4px ${color}40, 0 0 20px ${color}80; }
+        0% { transform: scale(1); box-shadow: 0 0 0 4px rgba(255,255,255,0.3), 0 0 20px rgba(255,255,255,0.5); }
+        50% { transform: scale(1.2); box-shadow: 0 0 0 8px rgba(255,255,255,0.2), 0 0 30px rgba(255,255,255,0.4); }
+        100% { transform: scale(1); box-shadow: 0 0 0 4px rgba(255,255,255,0.3), 0 0 20px rgba(255,255,255,0.5); }
       }
     `;
     const styleSheet = document.createElement("style");
@@ -76,75 +71,24 @@ export const AutomationService = {
     document.head.appendChild(styleSheet);
     dot.style.animation = "ghostpilot-pulse 1.5s ease-in-out infinite";
 
-    // Floating label
-    const label = document.createElement("div");
-    Object.assign(label.style, {
-      position: "fixed",
-      left: `${Math.min(centerX - 80, window.innerWidth - 180)}px`,
-      top: `${rect.top - 50}px`,
-      padding: "10px 16px",
-      background: color,
-      color: "white",
-      borderRadius: "8px",
-      zIndex: "2147483647",
-      fontSize: "13px",
-      fontWeight: "600",
-      fontFamily: "system-ui, -apple-system, sans-serif",
-      boxShadow: "0 4px 20px rgba(0,0,0,0.4)",
-      pointerEvents: "none",
-      transform: "translateY(10px)",
-      opacity: "0",
-      transition: "all 0.3s ease",
-      whiteSpace: "nowrap",
-      display: "flex",
-      alignItems: "center",
-      gap: "8px",
-    });
-
-    // Action icon
-    const icon = document.createElement("span");
-    icon.style.fontSize = "14px";
-    icon.textContent = message.startsWith("Click")
-      ? "👆"
-      : message.startsWith("Typing")
-        ? "⌨️"
-        : message.startsWith("Selecting")
-          ? "📋"
-          : "✨";
-
-    label.appendChild(icon);
-    label.appendChild(document.createTextNode(message));
-    document.body.appendChild(label);
-
-    requestAnimationFrame(() => {
-      label.style.transform = "translateY(0)";
-      label.style.opacity = "1";
-    });
-
-    // Scroll element into view
     element.scrollIntoView({ behavior: "smooth", block: "center" });
 
-    // Store for cleanup
     activeHighlight = {
       remove: () => {
         dot.remove();
-        label.remove();
         styleSheet.remove();
       },
     };
 
-    // Auto-remove after 2.5 seconds
     setTimeout(() => {
       if (activeHighlight) {
         dot.style.transform = "scale(0)";
         dot.style.transition = "transform 0.3s ease";
-        label.style.opacity = "0";
-        label.style.transform = "translateY(-10px)";
         setTimeout(() => {
           this.clearHighlights();
         }, 300);
       }
-    }, 2500);
+    }, 2000);
   },
 
   showStatus(message: string, type: "info" | "success" | "error" = "info") {

@@ -24,19 +24,19 @@
 }
 
 @keyframes gp-dotPulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(96, 165, 250, 0.5); }
-  50% { box-shadow: 0 0 0 5px rgba(96, 165, 250, 0); }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.5); }
+  50% { box-shadow: 0 0 0 5px rgba(239, 68, 68, 0); }
 }
 
 .gp-modal {
   width: 480px;
   max-height: 70vh;
-  background: rgba(15, 15, 20, 0.95);
+  background: rgba(0, 0, 0, 0.95);
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
-  border: 1px solid rgba(168, 85, 247, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 16px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 40px rgba(168, 85, 247, 0.1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), 0 0 40px rgba(255, 255, 255, 0.05);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -59,8 +59,8 @@
   align-items: center;
   justify-content: space-between;
   padding: 12px 16px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(168, 85, 247, 0.05);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.02);
 }
 
 .gp-logo {
@@ -69,11 +69,11 @@
   gap: 8px;
   font-weight: 700;
   font-size: 15px;
-  color: #c084fc;
+  color: #ffffff;
 }
 
 .gp-logo svg {
-  color: #a855f7;
+  color: #ffffff;
 }
 
 .gp-close {
@@ -125,8 +125,8 @@
 }
 
 .gp-prompt-input textarea:focus {
-  border-color: rgba(168, 85, 247, 0.5);
-  box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.1);
+  border-color: rgba(255, 255, 255, 0.3);
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.1);
 }
 
 .gp-prompt-input textarea::placeholder {
@@ -139,9 +139,9 @@
   justify-content: center;
   gap: 8px;
   padding: 10px 20px;
-  background: linear-gradient(135deg, #7c3aed, #a855f7);
+  background: linear-gradient(135deg, #333, #555);
   color: white;
-  border: none;
+  border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 10px;
   font-size: 14px;
   font-weight: 600;
@@ -150,9 +150,9 @@
 }
 
 .gp-submit-btn:hover:not(:disabled) {
-  background: linear-gradient(135deg, #6d28d9, #9333ea);
+  background: linear-gradient(135deg, #444, #666);
   transform: translateY(-1px);
-  box-shadow: 0 4px 16px rgba(168, 85, 247, 0.3);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
 }
 
 .gp-submit-btn:disabled {
@@ -174,25 +174,25 @@
 
 .gp-phase-extracting,
 .gp-phase-planning {
-  background: rgba(168, 85, 247, 0.1);
-  color: #c084fc;
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
 }
 
 .gp-phase-executing {
-  background: rgba(59, 130, 246, 0.1);
-  color: #60a5fa;
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
 }
 
 .gp-phase-done {
-  background: rgba(34, 197, 94, 0.1);
-  color: #4ade80;
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
 }
 
 .gp-spinner {
   width: 14px;
   height: 14px;
-  border: 2px solid rgba(168, 85, 247, 0.3);
-  border-top-color: #a855f7;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-top-color: #fff;
   border-radius: 50%;
   animation: gp-spin 0.8s linear infinite;
   flex-shrink: 0;
@@ -207,15 +207,15 @@
 
 .gp-thought-trail {
   padding: 8px 10px;
-  background: rgba(59, 130, 246, 0.06);
+  background: rgba(255, 255, 255, 0.05);
   border-radius: 8px;
   margin-bottom: 8px;
-  border-left: 3px solid #60a5fa;
+  border-left: 3px solid #fff;
 }
 
 .gp-thought-label {
   font-size: 11px;
-  color: #60a5fa;
+  color: #fff;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -223,7 +223,7 @@
 
 .gp-thought-text {
   font-size: 12px;
-  color: #93bbfc;
+  color: #ccc;
   margin: 4px 0 0 0;
   line-height: 1.5;
 }
@@ -260,7 +260,7 @@
 }
 
 .gp-action-running {
-  background: rgba(59, 130, 246, 0.06);
+  background: rgba(255, 255, 255, 0.05);
 }
 
 .gp-action-done {
@@ -293,16 +293,16 @@
 }
 
 .gp-dot-pending {
-  background: #444;
+  background: #666;
 }
 
 .gp-dot-running {
-  background: #60a5fa;
+  background: #ef4444;
   animation: gp-dotPulse 1.2s ease-in-out infinite;
 }
 
 .gp-dot-done {
-  background: #4ade80;
+  background: #ef4444;
 }
 
 .gp-dot-error {
@@ -310,7 +310,7 @@
 }
 
 .gp-dot-skipped {
-  background: #444;
+  background: #666;
 }
 
 .gp-action-text {
@@ -320,7 +320,7 @@
 }
 
 .gp-action-running .gp-action-text {
-  color: #93bbfc;
+  color: #fff;
 }
 
 .gp-action-done .gp-action-text {
@@ -360,14 +360,14 @@
 }
 
 .gp-api-key-input input:focus {
-  border-color: rgba(168, 85, 247, 0.5);
+  border-color: rgba(255, 255, 255, 0.3);
 }
 
 .gp-api-key-input button {
   padding: 10px 20px;
-  background: linear-gradient(135deg, #7c3aed, #a855f7);
+  background: linear-gradient(135deg, #333, #555);
   color: white;
-  border: none;
+  border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 8px;
   font-weight: 600;
   cursor: pointer;
@@ -375,7 +375,7 @@
 }
 
 .gp-api-key-input button:hover:not(:disabled) {
-  background: linear-gradient(135deg, #6d28d9, #9333ea);
+  background: linear-gradient(135deg, #444, #666);
 }
 
 .gp-api-key-input button:disabled {
