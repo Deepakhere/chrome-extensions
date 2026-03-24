@@ -80,9 +80,10 @@ export function useActionPlan() {
         }
 
         // Build context about what's already been done
-        const completedContext = completedActionsRef.current.length > 0
-          ? `\n\n## ALREADY COMPLETED (DO NOT REPEAT THESE ACTIONS):\n${completedActionsRef.current.map(a => `- ${a}`).join("\n")}\n\nIMPORTANT: The page may have changed since these actions. Generate new steps based on the current DOM snapshot above.`
-          : "";
+        const completedContext =
+          completedActionsRef.current.length > 0
+            ? `\n\n## ALREADY COMPLETED (DO NOT REPEAT THESE ACTIONS):\n${completedActionsRef.current.map((a) => `- ${a}`).join("\n")}\n\nIMPORTANT: The page may have changed since these actions. Generate new steps based on the current DOM snapshot above.`
+            : "";
 
         // Phase 2: Get plan from AI
         setPhase("planning");
@@ -94,7 +95,7 @@ export function useActionPlan() {
         }
 
         const fullPrompt = prompt + completedContext;
-        
+
         const response = await chrome.runtime.sendMessage({
           type: "PLAN_ACTIONS",
           dom: domText,
@@ -136,14 +137,14 @@ export function useActionPlan() {
 
         setSteps(plan.steps.map((s) => ({ step: s, status: "pending" })));
 
-      // Route all execution to the component-based runner in App.tsx.
-      // This ensures we can handle multi-turn "isComplete: false" tasks properly.
-      setTask({
-        steps: plan.steps as any,
-        isComplete: plan.isComplete,
-        snapshot: snapshot,
-      });
-      setPhase("executing");
+        // Route all execution to the component-based runner in App.tsx.
+        // This ensures we can handle multi-turn "isComplete: false" tasks properly.
+        setTask({
+          steps: plan.steps as any,
+          isComplete: plan.isComplete,
+          snapshot: snapshot,
+        });
+        setPhase("executing");
       } catch (err) {
         setError((err as Error).message);
         setPhase("error");

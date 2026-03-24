@@ -35,7 +35,7 @@ export function useDrag(barRef: React.RefObject<HTMLDivElement | null>) {
       };
       isDragging.current = true;
     },
-    [barRef, position.x]
+    [barRef, position.x],
   );
 
   useEffect(() => {

@@ -24,9 +24,7 @@ export function ApiKeyInput({ onSave }: Props) {
 
   return (
     <div className="gp-api-key-input">
-      <p className="gp-api-label">
-        Enter your Groq API key to get started:
-      </p>
+      <p className="gp-api-label">Enter your Groq API key to get started:</p>
       <input
         ref={inputRef}
         type="password"
@@ -39,8 +37,8 @@ export function ApiKeyInput({ onSave }: Props) {
         {saving ? "Saving..." : "Save Key"}
       </button>
       <p className="gp-api-note">
-        Your key is stored locally in the extension and never shared. Get a free key
-        at console.groq.com
+        Your key is stored locally in the extension and never shared. Get a free
+        key at console.groq.com
       </p>
     </div>
   );

@@ -120,7 +120,7 @@ export const AutomationService = {
         label.remove();
         arrow.remove();
         highlight.remove();
-      }
+      },
     };
 
     // Auto-remove after 2 seconds

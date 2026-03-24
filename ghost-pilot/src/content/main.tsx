@@ -24,7 +24,7 @@ shadow.appendChild(mountPoint);
 ReactDOM.createRoot(mountPoint).render(
   <React.StrictMode>
     <App />
-  </React.StrictMode>
+  </React.StrictMode>,
 );
 
 console.log("GhostPilot loaded. Press ALT+P to activate.");

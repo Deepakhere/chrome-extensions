@@ -64,24 +64,28 @@ function isVisible(el: HTMLElement): boolean {
     style.opacity === "0"
   )
     return false;
-  
+
   // Check if element has size
   const rect = el.getBoundingClientRect();
   if (rect.width < 2 && rect.height < 2) return false;
-  
+
   // Allow fixed position elements (common for modals)
   if (style.position === "fixed" || style.position === "absolute") {
     // But still check if it's actually on screen
-    if (rect.top > window.innerHeight || rect.bottom < 0 || 
-        rect.left > window.innerWidth || rect.right < 0) {
+    if (
+      rect.top > window.innerHeight ||
+      rect.bottom < 0 ||
+      rect.left > window.innerWidth ||
+      rect.right < 0
+    ) {
       return false;
     }
     return true;
   }
-  
+
   // For regular elements, check offsetParent
   if (el.offsetParent === null) return false;
-  
+
   return true;
 }
 

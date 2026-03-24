@@ -55,13 +55,13 @@ async function callGroq(
 
   if (!response.ok) {
     const errorText = await response.text();
-    
+
     if (response.status === 401 || response.status === 403) {
       throw new Error(
         "Invalid API key. Please check your Groq API key and try again. Get a new key at https://console.groq.com",
       );
     }
-    
+
     if (response.status === 429) {
       const retryAfter = response.headers.get("retry-after");
       const waitTime = retryAfter ? parseInt(retryAfter) * 1000 : 60000;
@@ -69,7 +69,7 @@ async function callGroq(
         `Rate limit exceeded. Please wait ${Math.ceil(waitTime / 1000)} seconds and try again.`,
       );
     }
-    
+
     if (response.status === 400) {
       try {
         const err = JSON.parse(errorText);
@@ -78,13 +78,15 @@ async function callGroq(
         }
       } catch {}
     }
-    
-    throw new Error(`API error (${response.status}): ${errorText.slice(0, 100)}`);
+
+    throw new Error(
+      `API error (${response.status}): ${errorText.slice(0, 100)}`,
+    );
   }
 
   const data = await response.json();
   const text = data?.choices?.[0]?.message?.content;
-  
+
   if (!text) {
     throw new Error("Empty response from AI. Please try again.");
   }
@@ -134,11 +136,7 @@ async function handlePlanRequest(
   console.log("GhostPilot: Sending prompt to Groq API...");
 
   try {
-    const responseText = await callGroq(
-      systemPrompt,
-      userPrompt,
-      apiKey,
-    );
+    const responseText = await callGroq(systemPrompt, userPrompt, apiKey);
     console.log("GhostPilot: Received response from AI");
     return { data: responseText };
   } catch (err) {
